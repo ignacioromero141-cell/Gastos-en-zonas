@@ -451,7 +451,7 @@ function setText(selector, value) {
 
 function applyTheme(value) {
   document.documentElement.dataset.theme = value;
-  themeToggle.textContent = value === "dark" ? "Modo claro" : "Modo oscuro";
+  themeToggle.textContent = value === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
 }
 
 function monthLabel(month) {
