@@ -1,5 +1,6 @@
 const STORAGE_KEY = "gastos-4-zonas:v1";
 const TARGET_KEY = "gastos-4-zonas:targets";
+const THEME_KEY = "gastos-4-zonas:theme";
 
 const categories = {
   income: { label: "Ingreso", color: "#2176ae" },
@@ -31,9 +32,13 @@ const exportButton = document.querySelector("#exportButton");
 const saveTargets = document.querySelector("#saveTargets");
 const targetWarning = document.querySelector("#targetWarning");
 const trendChart = document.querySelector("#trendChart");
+const themeToggle = document.querySelector("#themeToggle");
+const monthStats = document.querySelector("#monthStats");
+const monthHistory = document.querySelector("#monthHistory");
 
 let entries = loadJson(STORAGE_KEY, []);
 let targets = loadJson(TARGET_KEY, defaultTargets);
+let theme = localStorage.getItem(THEME_KEY) || "light";
 
 const today = new Date();
 dateInput.value = toDateValue(today);
@@ -42,6 +47,7 @@ monthInput.value = toMonthValue(today);
 document.querySelector("#targetSavings").value = targets.savings;
 document.querySelector("#targetOutings").value = targets.outings;
 document.querySelector("#targetWants").value = targets.wants;
+applyTheme(theme);
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -69,6 +75,13 @@ form.addEventListener("submit", (event) => {
 
 monthInput.addEventListener("input", render);
 
+themeToggle.addEventListener("click", () => {
+  theme = theme === "dark" ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, theme);
+  applyTheme(theme);
+  renderTrend();
+});
+
 saveTargets.addEventListener("click", () => {
   targets = {
     savings: cleanPercent("#targetSavings"),
@@ -84,6 +97,13 @@ entriesList.addEventListener("click", (event) => {
   if (!button) return;
   entries = entries.filter((entry) => entry.id !== button.dataset.delete);
   saveEntries();
+  render();
+});
+
+monthHistory.addEventListener("click", (event) => {
+  const row = event.target.closest("[data-month]");
+  if (!row) return;
+  monthInput.value = row.dataset.month;
   render();
 });
 
@@ -129,6 +149,8 @@ function render() {
   setText("#balanceBadge", `Balance ${money.format(balance)}`);
 
   renderComparison(totals, income);
+  renderMonthlyStats(month);
+  renderMonthHistory(month);
   renderEntries(monthEntries);
   renderTrend();
 }
@@ -187,14 +209,18 @@ function renderTrend() {
   const ctx = trendChart.getContext("2d");
   const width = trendChart.width;
   const height = trendChart.height;
-  const months = getMonthSeries();
+  const months = getMonthSeries().slice(-8);
+  const styles = getComputedStyle(document.documentElement);
+  const panelColor = styles.getPropertyValue("--panel").trim();
+  const mutedColor = styles.getPropertyValue("--muted").trim();
+  const lineColor = styles.getPropertyValue("--line").trim();
 
   setText("#monthCount", `${months.length} ${months.length === 1 ? "mes" : "meses"}`);
 
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#fbfcfb";
+  ctx.fillStyle = panelColor;
   ctx.fillRect(0, 0, width, height);
-  ctx.strokeStyle = "#dde3df";
+  ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1;
 
   for (let i = 1; i <= 4; i += 1) {
@@ -206,22 +232,78 @@ function renderTrend() {
   }
 
   if (!months.length) {
-    ctx.fillStyle = "#607076";
+    ctx.fillStyle = mutedColor;
     ctx.font = "700 18px system-ui";
     ctx.fillText("Carga movimientos para ver tu progreso.", 34, 135);
     return;
   }
 
-  drawTrendLine(ctx, months, "savings", "#1b8a5a", width, height);
-  drawTrendLine(ctx, months, "outings", "#d95d39", width, height);
-  drawTrendLine(ctx, months, "wants", "#7d5fff", width, height);
+  drawTrendLine(ctx, months, "savings", styles.getPropertyValue("--savings").trim(), width, height);
+  drawTrendLine(ctx, months, "outings", styles.getPropertyValue("--outings").trim(), width, height);
+  drawTrendLine(ctx, months, "wants", styles.getPropertyValue("--wants").trim(), width, height);
 
-  ctx.fillStyle = "#607076";
+  ctx.fillStyle = mutedColor;
   ctx.font = "700 13px system-ui";
   months.forEach((month, index) => {
     const x = xPoint(index, months.length, width);
     ctx.fillText(month.label, x - 18, height - 14);
   });
+}
+
+function renderMonthlyStats(selectedMonth) {
+  const months = getMonthSeries();
+  const current = months.find((month) => month.key === selectedMonth);
+  const previous = getPreviousMonth(months, selectedMonth);
+
+  if (!current) {
+    monthStats.innerHTML = `<div class="empty">Carga movimientos para comparar este mes.</div>`;
+    setText("#selectedCompare", "Sin comparacion");
+    return;
+  }
+
+  const balance = current.income - current.savingsAmount - current.outingsAmount - current.wantsAmount;
+  const previousBalance = previous
+    ? previous.income - previous.savingsAmount - previous.outingsAmount - previous.wantsAmount
+    : null;
+
+  setText("#selectedCompare", previous ? `vs ${previous.label}` : "Primer mes cargado");
+
+  monthStats.innerHTML = [
+    statTemplate("Ingreso", money.format(current.income), diffText(current.income, previous?.income)),
+    statTemplate("Ahorro", `${current.savings}%`, diffText(current.savings, previous?.savings, "pp")),
+    statTemplate("Gasto total", money.format(current.outingsAmount + current.wantsAmount), diffText(current.outingsAmount + current.wantsAmount, previous ? previous.outingsAmount + previous.wantsAmount : null)),
+    statTemplate("Balance", money.format(balance), diffText(balance, previousBalance)),
+  ].join("");
+}
+
+function renderMonthHistory(selectedMonth) {
+  const months = getMonthSeries();
+
+  if (!months.length) {
+    monthHistory.innerHTML = `<div class="empty">Todavia no hay historial mensual.</div>`;
+    return;
+  }
+
+  monthHistory.innerHTML = [...months]
+    .reverse()
+    .map((month) => {
+      const selectedClass = month.key === selectedMonth ? " is-selected" : "";
+      return `
+        <button class="month-row${selectedClass}" type="button" data-month="${month.key}">
+          <span class="month-name">${month.label}</span>
+          <span class="month-mini-bars">
+            ${miniBar("savings", month.savings)}
+            ${miniBar("outings", month.outings)}
+            ${miniBar("wants", month.wants)}
+          </span>
+          <span class="month-totals">
+            <span>Ing ${money.format(month.income)}</span>
+            <span>Aho ${month.savings}% / Sal ${month.outings}% / Gus ${month.wants}%</span>
+          </span>
+        </button>
+      `;
+    })
+    .join("");
 }
 
 function drawTrendLine(ctx, months, key, color, width, height) {
@@ -258,16 +340,54 @@ function getMonthSeries() {
 
   return [...grouped.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-6)
     .map(([month, monthEntries]) => {
       const totals = getTotals(monthEntries);
       return {
-        label: month.slice(5),
+        key: month,
+        label: monthLabel(month),
+        income: totals.income,
+        savingsAmount: totals.savings,
+        outingsAmount: totals.outings,
+        wantsAmount: totals.wants,
         savings: percentOf(totals.savings, totals.income),
         outings: percentOf(totals.outings, totals.income),
         wants: percentOf(totals.wants, totals.income),
       };
     });
+}
+
+function getPreviousMonth(months, selectedMonth) {
+  const index = months.findIndex((month) => month.key === selectedMonth);
+  if (index <= 0) return null;
+  return months[index - 1];
+}
+
+function statTemplate(label, value, detail) {
+  return `
+    <article class="stat-card">
+      <span>${label}</span>
+      <strong>${value}</strong>
+      <small>${detail}</small>
+    </article>
+  `;
+}
+
+function diffText(value, previous, suffix = "") {
+  if (previous === null || previous === undefined) return "Sin mes anterior";
+  const diff = Math.round(value - previous);
+  if (diff === 0) return "Igual que el mes anterior";
+  const sign = diff > 0 ? "+" : "";
+  const formatted = suffix ? `${sign}${diff}${suffix}` : `${sign}${money.format(diff)}`;
+  return `${formatted} vs mes anterior`;
+}
+
+function miniBar(key, value) {
+  const capped = Math.min(value, 100);
+  return `
+    <span class="month-mini-track">
+      <span class="month-mini-fill" style="width:${capped}%; background:${categories[key].color}"></span>
+    </span>
+  `;
 }
 
 function getTotals(list) {
@@ -327,6 +447,19 @@ function toMonthValue(date) {
 
 function setText(selector, value) {
   document.querySelector(selector).textContent = value;
+}
+
+function applyTheme(value) {
+  document.documentElement.dataset.theme = value;
+  themeToggle.textContent = value === "dark" ? "Modo claro" : "Modo oscuro";
+}
+
+function monthLabel(month) {
+  const [year, monthNumber] = month.split("-");
+  return new Date(Number(year), Number(monthNumber) - 1, 1).toLocaleDateString("es-AR", {
+    month: "short",
+    year: "2-digit",
+  });
 }
 
 function formatDate(value) {

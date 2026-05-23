@@ -15,10 +15,13 @@
           <p class="eyebrow">Presupuesto personal</p>
           <h1>Gastos 4 Zonas</h1>
         </div>
-        <label class="month-picker">
-          <span>Mes</span>
-          <input id="monthInput" type="month">
-        </label>
+        <div class="top-actions">
+          <button id="themeToggle" class="theme-toggle" type="button" aria-label="Cambiar tema">Modo oscuro</button>
+          <label class="month-picker">
+            <span>Mes</span>
+            <input id="monthInput" type="month">
+          </label>
+        </div>
       </header>
 
       <section class="quick-panel" aria-label="Nuevo movimiento">
@@ -135,7 +138,21 @@
           <h2>Progreso mensual</h2>
           <span class="badge" id="monthCount">0 meses</span>
         </div>
+        <div class="chart-legend" aria-label="Referencias del grafico">
+          <span><i class="dot savings-dot"></i>Ahorro</span>
+          <span><i class="dot outings-dot"></i>Salidas</span>
+          <span><i class="dot wants-dot"></i>Gustos</span>
+        </div>
         <canvas id="trendChart" width="720" height="260" aria-label="Grafico de progreso mensual"></canvas>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Historial mensual</h2>
+          <span class="badge" id="selectedCompare">Sin comparacion</span>
+        </div>
+        <div id="monthStats" class="stats-grid"></div>
+        <div id="monthHistory" class="month-history"></div>
       </section>
 
       <section class="panel">
