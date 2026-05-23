@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101820">
+    <title>Gastos 4 Zonas</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Presupuesto personal</p>
+          <h1>Gastos 4 Zonas</h1>
+        </div>
+        <label class="month-picker">
+          <span>Mes</span>
+          <input id="monthInput" type="month">
+        </label>
+      </header>
+
+      <section class="quick-panel" aria-label="Nuevo movimiento">
+        <form id="entryForm" class="entry-form">
+          <div class="category-grid" role="radiogroup" aria-label="Tipo de movimiento">
+            <input id="cat-income" name="category" type="radio" value="income" checked>
+            <label for="cat-income" class="category-pill income">Ingreso</label>
+
+            <input id="cat-savings" name="category" type="radio" value="savings">
+            <label for="cat-savings" class="category-pill savings">Ahorro</label>
+
+            <input id="cat-outings" name="category" type="radio" value="outings">
+            <label for="cat-outings" class="category-pill outings">Salidas</label>
+
+            <input id="cat-wants" name="category" type="radio" value="wants">
+            <label for="cat-wants" class="category-pill wants">Gustos</label>
+          </div>
+
+          <div class="field-row">
+            <label>
+              <span>Monto</span>
+              <input id="amountInput" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" required>
+            </label>
+            <label>
+              <span>Fecha</span>
+              <input id="dateInput" type="date" required>
+            </label>
+          </div>
+
+          <label>
+            <span>Detalle</span>
+            <input id="noteInput" type="text" maxlength="64" placeholder="Nafta, ropa, sueldo, ETF...">
+          </label>
+
+          <button class="primary-button" type="submit">Agregar movimiento</button>
+        </form>
+      </section>
+
+      <section class="summary-grid" aria-label="Resumen del mes">
+        <article class="metric income">
+          <span>Ingreso</span>
+          <strong id="incomeTotal">$0</strong>
+          <small>Total que entro este mes</small>
+        </article>
+        <article class="metric savings">
+          <span>Ahorro</span>
+          <strong id="savingsTotal">$0</strong>
+          <small><b id="savingsPct">0%</b> del ingreso</small>
+        </article>
+        <article class="metric outings">
+          <span>Salidas</span>
+          <strong id="outingsTotal">$0</strong>
+          <small><b id="outingsPct">0%</b> del ingreso</small>
+        </article>
+        <article class="metric wants">
+          <span>Gustos</span>
+          <strong id="wantsTotal">$0</strong>
+          <small><b id="wantsPct">0%</b> del ingreso</small>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Mapa 4 zonas</h2>
+          <span id="balanceBadge" class="badge">Balance $0</span>
+        </div>
+        <div class="zone-map">
+          <div class="zone income">
+            <span>Ingreso</span>
+            <strong id="zoneIncome">100%</strong>
+          </div>
+          <div class="zone savings">
+            <span>Ahorro</span>
+            <strong id="zoneSavings">0%</strong>
+          </div>
+          <div class="zone outings">
+            <span>Salidas</span>
+            <strong id="zoneOutings">0%</strong>
+          </div>
+          <div class="zone wants">
+            <span>Gustos</span>
+            <strong id="zoneWants">0%</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Ideal vs real</h2>
+          <button id="saveTargets" class="ghost-button" type="button">Guardar metas</button>
+        </div>
+
+        <div class="targets">
+          <label>
+            <span>Ahorro ideal</span>
+            <input id="targetSavings" type="number" min="0" max="100" step="1">
+          </label>
+          <label>
+            <span>Salidas ideal</span>
+            <input id="targetOutings" type="number" min="0" max="100" step="1">
+          </label>
+          <label>
+            <span>Gustos ideal</span>
+            <input id="targetWants" type="number" min="0" max="100" step="1">
+          </label>
+        </div>
+
+        <div id="targetWarning" class="warning" hidden>Las metas deberian sumar 100%.</div>
+        <div id="comparisonBars" class="comparison-bars"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Progreso mensual</h2>
+          <span class="badge" id="monthCount">0 meses</span>
+        </div>
+        <canvas id="trendChart" width="720" height="260" aria-label="Grafico de progreso mensual"></canvas>
+      </section>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Movimientos</h2>
+          <button id="exportButton" class="ghost-button" type="button">Exportar CSV</button>
+        </div>
+        <div id="entriesList" class="entries-list"></div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
