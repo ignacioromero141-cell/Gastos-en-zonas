@@ -203,6 +203,11 @@ input:focus {
   color: #fff;
 }
 
+:root[data-theme="dark"] .primary-button {
+  background: #f2f5f1;
+  color: #121615;
+}
+
 .ghost-button {
   min-height: 38px;
   padding: 0 12px;
